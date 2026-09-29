@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Michigan Water Ledger</title>
+<meta name="description" content="Michigan's ports, locks, lakes and freshwater economy, computed from public federal data by the Localeco warehouse. Every figure links to the query and data release behind it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #F3F6F5; --surface: #FBFCFC; --ink: #15201E; --ink-2: #55625F; --muted: #8A9490;
+    --grid: #DEE4E1; --axis: #C2CBC7; --ring: rgba(21,32,30,0.10); --wash: rgba(42,120,214,0.07);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s1-soft: rgba(42,120,214,0.14);
+    --chip-ready: #0E6B4A; --chip-ready-bg: rgba(14,107,74,0.10);
+    --chip-floor: #8A5A00; --chip-floor-bg: rgba(138,90,0,0.10);
+    --chip-hole: #7A2F2F; --chip-hole-bg: rgba(122,47,47,0.10);
+    --chip-live: #1F4E9A; --chip-live-bg: rgba(31,78,154,0.10);
+    --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+    --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #131817; --surface: #1B211F; --ink: #E7ECEA; --ink-2: #AEB9B5; --muted: #8A9490;
+      --grid: #2B3330; --axis: #3C4643; --ring: rgba(231,236,234,0.10); --wash: rgba(57,135,229,0.10);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s1-soft: rgba(57,135,229,0.18);
+      --chip-ready: #5FCB9F; --chip-ready-bg: rgba(95,203,159,0.12);
+      --chip-floor: #E5B35A; --chip-floor-bg: rgba(229,179,90,0.12);
+      --chip-hole: #E58A8A; --chip-hole-bg: rgba(229,138,138,0.12);
+      --chip-live: #8FB4EE; --chip-live-bg: rgba(143,180,238,0.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #131817; --surface: #1B211F; --ink: #E7ECEA; --ink-2: #AEB9B5; --muted: #8A9490;
+    --grid: #2B3330; --axis: #3C4643; --ring: rgba(231,236,234,0.10); --wash: rgba(57,135,229,0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s1-soft: rgba(57,135,229,0.18);
+    --chip-ready: #5FCB9F; --chip-ready-bg: rgba(95,203,159,0.12);
+    --chip-floor: #E5B35A; --chip-floor-bg: rgba(229,179,90,0.12);
+    --chip-hole: #E58A8A; --chip-hole-bg: rgba(229,138,138,0.12);
+    --chip-live: #8FB4EE; --chip-live-bg: rgba(143,180,238,0.12);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  a { color: var(--s1); }
+  :focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+  .page { max-width: 960px; margin: 0 auto; padding: 44px 20px 80px; }
+  p { margin: 0 0 12px; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.12; margin: 0; text-wrap: balance; }
+  h1 { font-size: 42px; letter-spacing: -0.01em; }
+  h2 { font-size: 26px; margin-top: 8px; }
+  h3 { font-size: 18px; margin-top: 22px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .lede { font-size: 19px; color: var(--ink-2); line-height: 1.45; margin-top: 12px; max-width: 62ch; }
+
+  .ledger { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); margin: 30px 0 0; border-top: 2px solid var(--ink); }
+  .ledger > div { padding: 12px 14px 14px 0; border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); }
+  .ledger > div:nth-child(4n) { border-right: 0; }
+  .ledger > div:not(:nth-child(4n+1)) { padding-left: 14px; }
+  .ledger .k { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .ledger .v { font-family: var(--display); font-weight: 600; font-size: 22px; line-height: 1.1; margin-top: 4px; }
+  .ledger .s { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
+  @media (max-width: 640px) {
+    .ledger { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .ledger > div { padding-left: 0 !important; border-right: 1px solid var(--grid); }
+    .ledger > div:nth-child(2n) { border-right: 0; padding-left: 14px !important; }
+    .ledger .v { font-size: 19px; }
+    h1 { font-size: 34px; }
+  }
+
+  section.fig { margin-top: 64px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 3px; }
+  .chip.ready { color: var(--chip-ready); background: var(--chip-ready-bg); }
+  .chip.floor { color: var(--chip-floor); background: var(--chip-floor-bg); }
+  .chip.hole  { color: var(--chip-hole);  background: var(--chip-hole-bg); }
+  .chip.live  { color: var(--chip-live);  background: var(--chip-live-bg); }
+  .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .answer { font-size: 17px; color: var(--ink-2); max-width: 68ch; margin-top: 10px; }
+  .answer b, .insight b { color: var(--ink); font-weight: 600; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 16px 0 0; font-size: 14px; color: var(--ink-2); }
+  .controls label { display: inline-flex; align-items: center; gap: 8px; }
+  select, input[type=range] { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--axis); border-radius: 3px; padding: 6px 8px; }
+  select { min-width: 200px; }
+  input[type=range] { accent-color: var(--s1); padding: 0; width: 220px; }
+  .btn { font: inherit; font-size: 13px; padding: 5px 10px; border: 1px solid var(--axis); background: var(--surface); color: var(--ink-2); border-radius: 3px; cursor: pointer; }
+  .btn[aria-pressed="true"] { border-color: var(--s1); color: var(--s1); background: var(--wash); }
+
+  figure { margin: 18px 0 0; }
+  .plot { position: relative; background: var(--surface); border: 1px solid var(--ring); border-radius: 4px; padding: 16px 12px 10px; overflow-x: auto; }
+  .plot svg { display: block; width: 100%; height: auto; max-width: 100%; color: var(--ink); font-family: var(--body); }
+  .plot text { fill: currentColor; font-size: 12.5px; }
+  .plot text.lab { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+  .plot text.val { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-2); }
+  .plot text.strong { font-weight: 600; }
+  .plot .grid { stroke: var(--grid); stroke-width: 1; }
+  .plot .axis { stroke: var(--axis); stroke-width: 1; }
+  .plot .b1 { fill: var(--s1); } .plot .b2 { fill: var(--s2); } .plot .b3 { fill: var(--s3); }
+  .plot .b1.dim { opacity: 0.35; }
+  .plot .sel { stroke: var(--ink); stroke-width: 1.5; }
+  .plot .l1 { fill: none; stroke: var(--s1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .plot .l2 { fill: none; stroke: var(--s2); stroke-width: 2; stroke-linejoin: round; }
+  .plot .l3 { fill: none; stroke: var(--s3); stroke-width: 2; stroke-linejoin: round; }
+  .plot .a1 { fill: var(--s1-soft); }
+  .plot .withheld { fill: url(#hatch); stroke: var(--muted); stroke-width: 1; }
+  .plot .hit { fill: transparent; cursor: pointer; }
+  .plot .gap { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+  .plot .dot { fill: var(--s1); stroke: var(--surface); stroke-width: 2; }
+  .plot .ref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; color: var(--ink-2); margin: 10px 0 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+  .legend i.s1 { background: var(--s1); } .legend i.s2 { background: var(--s2); } .legend i.s3 { background: var(--s3); }
+  .legend i.hatch { background: repeating-linear-gradient(135deg, var(--muted) 0 1px, transparent 1px 4px); border: 1px solid var(--muted); }
+  .legend i.line { height: 2px; background: var(--s1); border-radius: 0; }
+  .legend i.line2 { height: 2px; background: var(--s2); border-radius: 0; }
+  .legend i.line3 { height: 2px; background: var(--s3); border-radius: 0; }
+  figcaption { font-size: 13.5px; color: var(--ink-2); margin-top: 10px; max-width: 74ch; }
+  .prov { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+  .prov b { color: var(--ink-2); font-weight: 500; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; font-size: 13px; color: var(--ink-2); font-family: var(--mono); }
+  .tablewrap { overflow-x: auto; margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 7px 12px 7px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--axis); }
+  td.num, th.num { text-align: right; padding-right: 18px; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 13px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 4px; padding: 12px 14px; }
+  .card .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .card .v { font-family: var(--display); font-weight: 600; font-size: 24px; line-height: 1.1; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .card .s { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+  .card.warn { border-color: var(--chip-floor); }
+  .card.hole { border-color: var(--chip-hole); }
+  .st { font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; }
+  .st.published { color: var(--chip-ready); background: var(--chip-ready-bg); }
+  .st.bounded_below { color: var(--chip-floor); background: var(--chip-floor-bg); }
+  .st.withheld { color: var(--chip-hole); background: var(--chip-hole-bg); }
+  .filters { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 12px 0 0; font-size: 14px; color: var(--ink-2); }
+  .filters label { display: inline-flex; align-items: center; gap: 8px; }
+  .plot .b3 { fill: var(--s3); }
+
+  .insights { margin-top: 64px; border-top: 2px solid var(--ink); padding-top: 18px; }
+  .insight { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--grid); font-size: 16px; color: var(--ink-2); max-width: 78ch; }
+  .insight .n { font-family: var(--display); font-weight: 600; font-size: 20px; color: var(--muted); line-height: 1.2; }
+  .insight .cite { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+  .verdict { margin-top: 14px; padding: 14px 16px; border-left: 3px solid var(--s1); background: var(--surface); border-radius: 0 4px 4px 0; max-width: 78ch; }
+  .verdict .v { font-family: var(--display); font-weight: 600; font-size: 22px; }
+  .verdict.no { border-left-color: var(--chip-hole); } .verdict.caveat { border-left-color: var(--chip-floor); } .verdict.yes { border-left-color: var(--chip-ready); }
+  .verdict .why { color: var(--ink-2); font-size: 14.5px; margin-top: 6px; }
+  .mcards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  @media (max-width: 640px) { .mcards { grid-template-columns: 1fr; } }
+  .mcards code { font-family: var(--mono); font-size: 12.5px; }
+
+  .tip { position: fixed; pointer-events: none; z-index: 10; background: var(--ink); color: var(--ground); font-family: var(--mono); font-size: 12px; line-height: 1.45; padding: 7px 10px; border-radius: 3px; max-width: 300px; opacity: 0; transition: opacity 80ms; white-space: pre-line; }
+  .tip.on { opacity: 1; }
+  .absent { margin-top: 64px; border-top: 2px solid var(--ink); padding-top: 18px; }
+  .absent ul { margin: 10px 0 0; padding-left: 20px; max-width: 72ch; }
+  .absent li { margin-bottom: 8px; }
+  .foot { margin-top: 56px; padding-top: 14px; border-top: 1px solid var(--grid); font-size: 13px; color: var(--muted); font-family: var(--mono); line-height: 1.6; }
+  @media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
+  .sources { margin-top: 64px; border-top: 2px solid var(--ink); padding-top: 18px; }
+  .sources td { font-size: 13px; }
+  .sources td.f { min-width: 16em; }
+  .sources td.q a { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+  .sources td.r { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  .sources td.r div + div { margin-top: 3px; }
+  .load-error { margin-top: 18px; padding: 12px 14px; border-left: 3px solid var(--chip-hole); background: var(--surface); }
+</style>
+</head>
+<body>
+
+<main class="page">
+  <header>
+    <div class="eyebrow">Localeco · what the warehouse holds on Michigan's water · <span id="asof"></span></div>
+    <h1>Michigan Water Ledger</h1>
+    <p class="lede">Michigan's ports, locks, lakes, the businesses on the water, and — new — the freshwater economy defined and counted, with who funds it. Pick a port, a gauge, a winter or a county and the page answers from the same rows. Every figure names its release, says how far it should be trusted, and comes from a query you can read: see <a href="#sources">where every number comes from</a>.</p>
+    <div class="ledger" id="ledger" aria-label="Coverage"></div>
+    <p style="margin-top:14px;font-size:14px;color:var(--ink-2);max-width:78ch">A chip on each figure says what kind of answer it is: <span class="chip ready">ready</span> is a published or fully observed number; <span class="chip live">daily</span> is fetched every morning; <span class="chip floor">floor</span> is a conservative estimate scaled from a sample; <span class="chip hole">withheld</span> means the publisher hid part of it and the figure says what can still be said.</p>
+  </header>
+
+  <!-- PORTS -->
+  <section class="fig" id="ports">
+    <span class="chip ready">ready</span>
+    <h2>Pick a port</h2>
+    <p class="answer" id="ports-answer"></p>
+    <div class="controls"><label>Port <select id="port-select"></select></label><span id="port-hint" style="font-size:13px;color:var(--muted)">or click a bar</span></div>
+    <div class="cards" id="port-cards"></div>
+    <figure>
+      <div class="plot"><svg id="svg-tonnage" role="img" aria-label="Horizontal bars of 2023 tonnage for ten Michigan ports, each split into domestic and foreign tons; the selected port is outlined."></svg></div>
+      <div class="legend"><span><i class="s1"></i>domestic tons</span><span><i class="s2"></i>foreign tons</span></div>
+      <figcaption>Principal ports only: the Army Corps ranks the top 150 nationally and these ten are Michigan's share. A harbor with traffic but outside the top 150 is not here. The tons-per-call rate is a <b>floor</b>: calls come from nine observed AIS days scaled to a year, and a July week annualised assumes Februaries the ice does not permit.</figcaption>
+      <div class="prov" id="ports-prov"></div>
+      <details><summary>table</summary><div class="tablewrap" id="tbl-tonnage"></div></details>
+    </figure>
+  </section>
+
+  <!-- SOO -->
+  <section class="fig" id="soo">
+    <span class="chip live">daily</span>
+    <h2>How busy are the Soo Locks, and how long do vessels wait?</h2>
+    <p class="answer" id="soo-answer"></p>
+    <figure>
+      <div class="plot"><svg id="svg-soo" role="img" aria-label="Two panels: lockages per day at the Soo Locks since 4 August 2026, and the 90th-percentile wait in minutes each day."></svg></div>
+      <div class="legend"><span><i class="s1"></i>lockages that day</span><span><i class="line"></i>90th-percentile wait, minutes</span></div>
+      <figcaption>Not an inference — the Corps publishes every lockage with its arrival, start and end times, so wait and lockage time are measured. This is the one source here fetched every morning: the Corps keeps only a rolling month online, so a day not collected is a day gone.</figcaption>
+      <div class="prov" id="soo-prov"></div>
+      <details><summary>table</summary><div class="tablewrap" id="tbl-soo"></div></details>
+    </figure>
+  </section>
+
+  <!-- GAUGES -->
+  <section class="fig" id="gauges">
+    <span class="chip ready">ready</span>
+    <h2>Pick a gauge: level, wind and water temperature</h2>
+    <p class="answer" id="gauge-answer"></p>
+    <div class="controls"><label>Gauge <select id="gauge-select"></select></label><span id="gauge-sensors" style="font-size:13px;color:var(--muted)"></span></div>
+    <figure>
+      <div class="plot"><svg id="svg-gauge" role="img" aria-label="Three panels for the selected gauge: monthly mean water level in metres IGLD, monthly mean wind speed with the month's peak gust, and monthly mean water temperature with the month's minimum, January 2023 to August 2026."></svg></div>
+      <div class="legend"><span><i class="line"></i>monthly mean</span><span><i class="line2"></i>month's extreme (peak gust · coldest water)</span><span><i style="width:14px;height:0;border-top:1px dashed var(--muted)"></i>reference: 10.8 m/s small-craft threshold · 0 °C</span></div>
+      <figcaption>Metres on the International Great Lakes Datum, a lake datum — never comparable with a coastal one. Wind in metres per second as NOAA publishes it (10.8 m/s is 21 knots, where Small Craft Advisories begin on the lakes). Each monthly point averages up to 7,440 six-minute readings. 26 of the 52 Great Lakes gauges list an anemometer and 22 a thermometer; a gauge without one shows no panel rather than an empty one.</figcaption>
+      <div class="prov" id="gauge-prov"></div>
+    </figure>
+  </section>
+
+  <!-- ICE -->
+  <section class="fig" id="ice">
+    <span class="chip ready">ready</span>
+    <h2>Pick a winter: how much of the lakes froze</h2>
+    <p class="answer" id="ice-answer"></p>
+    <div class="controls"><label>Winter <input type="range" id="ice-year" min="2009" max="2026" step="1"></label><span id="ice-year-label" style="font-family:var(--display);font-weight:600;font-size:22px"></span></div>
+    <div class="cards" id="ice-cards"></div>
+    <figure>
+      <div class="plot"><svg id="svg-ice" role="img" aria-label="Basin-wide percent ice cover from November to May for the selected winter, against the record high winter of 2014 and the record low of 2024."></svg></div>
+      <div class="legend"><span><i class="line"></i>selected winter, all lakes</span><span><i class="line2"></i>2014, the most ice in the series</span><span><i class="line3"></i>2024, the least</span></div>
+      <figcaption>Percent of the whole basin under ice on each charted day, NOAA GLERL, 2008 onward. Charted days only — a day with no row has no chart and is never read as open water. Ice is why every annualised shipping rate on this page is a floor: the Soo closes in January and the lakers lay up until late March. <b>The publisher renamed its Lake Ontario column "America" in 2026; it is stored as Ontario.</b></figcaption>
+      <div class="prov" id="ice-prov"></div>
+      <details><summary>table: peak by lake, this winter</summary><div class="tablewrap" id="tbl-ice"></div></details>
+    </figure>
+  </section>
+
+  <!-- COUNTY -->
+  <section class="fig" id="county">
+    <span class="chip ready">ready</span>
+    <h2>Pick a county: the businesses on the water</h2>
+    <p class="answer" id="county-answer"></p>
+    <div class="controls"><label>County <select id="county-select"></select></label></div>
+    <div class="cards" id="county-cards"></div>
+    <h3>Water industries in this county, 2023 — two surveys, side by side</h3>
+    <p class="answer" id="county-industries-lede" style="font-size:15px"></p>
+    <div class="tablewrap" id="county-industries"></div>
+    <p class="prov" id="county-industries-prov"></p>
+    <figure>
+      <div class="plot"><svg id="svg-sba-year" role="img" aria-label="SBA-backed loans to water businesses in Michigan counties by year since 2010, as bars of dollars approved; the selected county's share is highlighted."></svg></div>
+      <div class="legend"><span><i class="s1"></i>selected county, $ approved</span><span><i class="s1" style="opacity:.35"></i>rest of Michigan</span></div>
+      <figcaption>SBA 7(a) and 504 loans whose borrower's industry code is a water business: marinas (713930), boat and ship building (3366), water transportation and port services (483, 4883), scenic water tours (4872), fishing and seafood (1141, 3117), water and sewer utilities (2213). Approved amounts, not disbursed; jobs are the borrower's own estimate on the application. A county is the borrower's, which is usually but not always where the marina is.</figcaption>
+      <div class="prov" id="county-prov"></div>
+      <details><summary>table: SBA water loans by county</summary><div class="tablewrap" id="tbl-sba"></div></details>
+    </figure>
+  </section>
+
+  <!-- QCEW -->
+  <section class="fig" id="qcew">
+    <span class="chip hole">withheld</span>
+    <h2>How many people work in water transportation, county by county?</h2>
+    <p class="answer" id="qcew-answer"></p>
+    <figure>
+      <div class="plot"><svg id="svg-qcew" role="img" aria-label="Horizontal bars of 2023 private water transportation employment for Michigan counties; three published, the rest hatched as withheld."></svg></div>
+      <div class="legend"><span><i class="s1"></i>published employment</span><span><i class="hatch"></i>withheld by BLS — establishments counted, jobs not published</span></div>
+      <figcaption>A withheld cell is not zero, and this page never shows it as one. The state total is published, the visible counties sum, and BLS separately publishes the establishments it could assign to no county, so what remains must sit in the hidden counties — a fact about that group, not about any one county. This is the reasoning Localeco's suppression rules make routine: say what the arithmetic allows and nothing more.</figcaption>
+      <div class="prov" id="qcew-prov"></div>
+      <details><summary>table</summary><div class="tablewrap" id="tbl-qcew"></div></details>
+    </figure>
+  </section>
+
+  <!-- ACCOUNT -->
+  <section class="fig" id="account">
+    <span class="chip floor">floor</span>
+    <h2>The freshwater economy, defined and counted</h2>
+    <p class="answer" id="account-answer"></p>
+    <div class="cards" id="account-cards"></div>
+    <figure>
+      <div class="plot"><svg id="svg-account" role="img" aria-label="Horizontal bars of 2023 Michigan employment in each of nine freshwater sectors from BLS, every ownership, with the CBP figure marked beside each; bars for sectors with withheld cells are marked as floors."></svg></div>
+      <div class="legend"><span><i class="s1"></i>BLS jobs (every ownership)</span><span><i class="hatch"></i>partly withheld — a floor</span><span><i style="width:10px;height:10px;border-radius:50%;background:var(--s2)"></i>Census CBP jobs (private only, noise-infused)</span></div>
+      <figcaption id="account-caption"></figcaption>
+      <div class="prov" id="account-prov"></div>
+      <details><summary>the basket: nine industries and the basis for each</summary><div class="tablewrap" id="tbl-basket"></div><p class="prov">Left out on purpose: the water-tech manufacturing slices (pumps and filtration 3339, instruments 3345, engineering 5413) — any share assigned to them here would be invented; and tourism beyond marinas and tours, because "lake-adjacent hotel" is not a definable industry. Both are why this account comes in below the "$60 billion and a million jobs" figure, and which sectors that figure must be counting.</p></details>
+      <details><summary>table: every sector, every county</summary><div class="tablewrap" id="tbl-account"></div></details>
+    </figure>
+  </section>
+
+  <!-- RATIOS -->
+  <section class="fig" id="ratios">
+    <span class="chip ready">ready</span>
+    <h2>Where Michigan is a water economy, and whether it is gaining</h2>
+    <p class="answer" id="ratios-answer"></p>
+    <figure>
+      <div class="plot"><svg id="svg-lq" role="img" aria-label="Horizontal bars of the freshwater location quotient for the twelve most specialised Michigan counties, 2023; 1.0 marked as the national proportion."></svg></div>
+      <div class="legend"><span><i class="s1"></i>location quotient, whole basket</span><span><i style="width:14px;height:0;border-top:1px dashed var(--muted)"></i>1.0 = the national proportion</span></div>
+      <figcaption>A location quotient compares a county's share of jobs in the basket with the nation's share: 1.0 is the national proportion, 50 is fifty times it. From County Business Patterns, the one employer count the warehouse holds for every state and the nation. NULL — not shown — where CBP withholds the county's count.</figcaption>
+    </figure>
+    <figure>
+      <div class="plot"><svg id="svg-shift" role="img" aria-label="For each freshwater sector in Michigan, the 2020 to 2023 change in jobs split into national growth, industry mix and local shift, as three stacked bars."></svg></div>
+      <div class="legend"><span><i class="s1"></i>national growth — had it grown like the US economy</span><span><i class="s2"></i>industry mix — the sector's national trend</span><span><i class="s3"></i>local shift — Michigan's own performance</span></div>
+      <figcaption id="shift-caption"></figcaption>
+      <div class="prov" id="ratios-prov"></div>
+      <details><summary>table: location quotient and shift-share by county</summary><div class="tablewrap" id="tbl-ratios"></div></details>
+    </figure>
+  </section>
+
+  <!-- RESOURCE MAP -->
+  <section class="fig" id="funders">
+    <span class="chip ready">ready</span>
+    <h2>Who was funded for water: the resource map, as data</h2>
+    <p class="answer" id="funders-answer"></p>
+    <div class="cards" id="funders-cards"></div>
+    <div class="filters"><label>Program <select id="award-program"></select></label><label>County <select id="award-county"></select></label><label>Rule <select id="award-rule"></select></label></div>
+    <div class="tablewrap" id="tbl-awards"></div>
+    <p class="prov" id="funders-prov"></p>
+    <h3>Freshwater-tech companies with federal R&amp;D awards</h3>
+    <p class="answer" id="sbir-answer" style="font-size:15px"></p>
+    <div class="tablewrap" id="tbl-sbir"></div>
+    <p class="prov" id="sbir-prov"></p>
+    <details><summary>the 45 rules that admit an award, and the basis for each</summary><div class="tablewrap" id="tbl-rules"></div></details>
+  </section>
+
+  <!-- INSIGHTS -->
+  <section class="insights" id="insights">
+    <div class="eyebrow">Read across the figures</div>
+    <h2>What the numbers say</h2>
+    <p class="answer">Each sentence is computed from the rows above when the page loads, and cites them. Nothing here is typed in.</p>
+    <div id="insight-list"></div>
+  </section>
+
+  <section class="absent">
+    <div class="eyebrow">Not on this page</div>
+    <h2>What the warehouse does not hold</h2>
+    <ul>
+      <li><b>Water quality.</b> No EPA, USGS or state source yet. Added to the roadmap on 24 September as a domain with candidates (EPA Water Quality Portal, USGS gauges, EGLE beach advisories, GLERL algal-bloom bulletins); nothing verified.</li>
+      <li><b>Fisheries.</b> NOAA landings and trade are next on the roadmap. Great Lakes commercial fishing data sits mostly with state DNRs and the Great Lakes Fishery Commission. (Aquaculture is on the page — 64 Michigan operations, from the Census of Agriculture.)</li>
+      <li><b>The rest of the resource map.</b> USDA's rural water program (its FY2025 file is farm payments by the million rows, a server job), partners and programs as curated entities, and SBIR abstracts (the public file has none). Dollars of output and multipliers: a further source and a purchase.</li>
+      <li><b>Marine forecasts.</b> Access was checked on 24 September: the weather service lists bulletins but does not include their text, so each is a second fetch and the source needs a design decision before it is built.</li>
+      <li><b>More than nine days of vessel traffic.</b> The AIS archive runs 2015 to five months ago; loading a shipping season is a deliberate backlog item until there is a server to hold it. Every AIS-derived figure here says "nine days".</li>
+      <li><b>Vessel tracking from lock to berth.</b> The lock log begins August 2026; the AIS archive ends March 2026. No shared day yet.</li>
+    </ul>
+  </section>
+
+  <section class="sources" id="sources">
+    <div class="eyebrow">Where every number comes from</div>
+    <h2>Sources and queries</h2>
+    <p class="answer" id="sources-answer"></p>
+    <div class="tablewrap" id="tbl-sources"></div>
+  </section>
+
+  <div class="foot" id="foot"></div>
+</main>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+function ledger(DATA) {
+  const $ = (s) => document.querySelector(s);
+  const NS = 'http://www.w3.org/2000/svg';
+  const fmt = (n) => Math.round(n).toLocaleString('en-US');
+  const fmtM = (n) => (n / 1e6).toFixed(1) + 'M';
+  const usd = (n) => n >= 1e6 ? '$' + (n / 1e6).toFixed(1) + 'M' : '$' + fmt(n);
+  const R = DATA.releases, RC = DATA.captureReleases;
+  const el = (tag, attrs, parent, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e; };
+  const h = (tag, cls, parent, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; parent.appendChild(e); return e; };
+  const remember = (k, v) => { try { localStorage.setItem('mwl.' + k, v); } catch (e) {} };
+  const recall = (k, d) => { try { return localStorage.getItem('mwl.' + k) ?? d; } catch (e) { return d; } };
+  const tip = $('#tip');
+  function hover(target, text, onClick) {
+    target.addEventListener('mousemove', (ev) => { tip.textContent = text; tip.classList.add('on'); tip.style.left = Math.min(ev.clientX + 14, window.innerWidth - 320) + 'px'; tip.style.top = (ev.clientY + 14) + 'px'; });
+    target.addEventListener('mouseleave', () => tip.classList.remove('on'));
+    target.setAttribute('tabindex', '0');
+    target.addEventListener('focus', () => { tip.textContent = text; tip.classList.add('on'); const r = target.getBoundingClientRect(); tip.style.left = (r.left + 10) + 'px'; tip.style.top = (r.bottom + 6) + 'px'; });
+    target.addEventListener('blur', () => tip.classList.remove('on'));
+    if (onClick) { target.addEventListener('click', onClick); target.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }); }
+  }
+  function defs(svg) { const d = el('defs', {}, svg); const p = el('pattern', { id: 'hatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(135)' }, d); el('line', { x1: 0, y1: 0, x2: 0, y2: 6, stroke: 'var(--muted)', 'stroke-width': 1 }, p); }
+  function clear(svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+  function table(id, cols, rows) {
+    const host = $(id); host.innerHTML = '';
+    const t = document.createElement('table'); const thead = t.createTHead().insertRow();
+    cols.forEach((c) => { const th = document.createElement('th'); th.textContent = c.h; if (c.num) th.className = 'num'; thead.appendChild(th); });
+    const tb = t.createTBody();
+    rows.forEach((r) => { const tr = tb.insertRow(); cols.forEach((c) => { const td = tr.insertCell(); td.textContent = c.f(r); if (c.num) td.className = 'num'; }); });
+    host.appendChild(t);
+  }
+  function card(parent, k, v, s, cls) { const c = h('div', 'card' + (cls ? ' ' + cls : ''), parent); h('div', 'k', c, k); h('div', 'v', c, v); if (s) h('div', 's', c, s); return c; }
+  function hbars(svg, rows, opts) {
+    const W = 900, labW = opts.labW || 190, rowH = opts.rowH || 30, top = 8, right = opts.right || 110;
+    const H = top + rows.length * rowH + 8;
+    clear(svg); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); defs(svg);
+    const max = Math.max(...rows.map(opts.total));
+    const x = (v) => labW + (v / max) * (W - labW - right);
+    rows.forEach((r, i) => { const y = top + i * rowH, bh = rowH - 10; el('text', { x: labW - 12, y: y + bh / 2 + 4, 'text-anchor': 'end' }, svg, opts.label(r)); opts.draw(r, y, bh, x, svg); });
+    el('line', { x1: labW, y1: top - 2, x2: labW, y2: H - 6, class: 'axis' }, svg);
+  }
+  const months = []; for (let y = 2023; y <= 2026; y++) for (let m = 1; m <= 12; m++) { const s = `${y}-${String(m).padStart(2, '0')}-01`; if (s <= '2026-08-01') months.push(s); }
+
+  // ---------- header ----------
+  $('#asof').textContent = 'as of ' + DATA.generated.slice(0, 10);
+  {
+    const L = $('#ledger');
+    const tot = DATA.tonnage.reduce((a, r) => a + r.total, 0);
+    const wind = new Set(DATA.wind.map((r) => r[0])).size, temp = new Set(DATA.temp.map((r) => r[0])).size;
+    const seasons = new Set(DATA.icePeaks.map((r) => r[0])).size;
+    [['Ports · cargo', fmtM(tot) + ' tons', '10 principal ports, 2023'],
+     ['Vessel traffic', '9 days', 'AIS: 7 in July 2023, 2 in March 2026'],
+     ['Soo Locks', DATA.soo.length + ' days', 'every lockage since 4 Aug 2026, fetched daily'],
+     ['Lake gauges', '29 in Michigan', `level at all; wind at ${wind}, water temperature at ${temp}`],
+     ['Ice', seasons + ' winters', 'daily per lake, 2008 → 2026'],
+     ['SBA water lending', fmt(DATA.sbaTotals.n) + ' loans', usd(DATA.sbaTotals.usd) + ' since ' + DATA.sbaTotals.from],
+     ['Freshwater economy', '≥ ' + fmt(DATA.account.find((r) => r.level === 'state' && r.seg === 'total').emp) + ' jobs', 'nine sectors, defined and counted, 2023'],
+     ['Federal water funding', usd(DATA.awardsTotals.usd), fmt(DATA.awardsTotals.n) + ' awards to ' + DATA.awardsTotals.recipients + ' Michigan recipients, FY2025']
+    ].forEach(([k, v, s]) => { const d = h('div', '', L); h('div', 'k', d, k); h('div', 'v', d, v); h('div', 's', d, s); });
+  }
+
+  // ---------- ports ----------
+  const portList = DATA.tonnage;
+  const rateBy = Object.fromEntries(DATA.rates.map((r) => [r.code, r]));
+  const callsBy = Object.fromEntries(DATA.calls.map((r) => [r.code, r]));
+  let port = recall('port', '3321');
+  function drawPorts() {
+    const svg = $('#svg-tonnage');
+    hbars(svg, portList, {
+      total: (r) => r.total, label: (r) => r.name.replace('Detroit-Wayne County Port', 'Detroit'),
+      draw(r, y, bh, x, svg) {
+        const g = el('g', {}, svg); const sel = r.code === port;
+        el('rect', { x: x(0), y, width: Math.max(x(r.domestic) - x(0), 1), height: bh, class: 'b1' + (sel ? ' sel' : '') }, g);
+        const fx = x(r.domestic) + 2;
+        el('rect', { x: fx, y, width: Math.max(x(r.total) - fx, 1), height: bh, class: 'b2' + (sel ? ' sel' : '') }, g);
+        el('text', { x: x(r.total) + 10, y: y + bh / 2 + 4, class: 'val' + (sel ? ' strong' : '') }, g, fmtM(r.total) + ' t');
+        const hit = el('rect', { x: 0, y: y - 2, width: 900, height: bh + 4, class: 'hit' }, g);
+        hover(hit, `${r.name}\n${fmt(r.total)} short tons, 2023\ndomestic ${fmt(r.domestic)} · foreign ${fmt(r.foreign)}\nnational rank ${r.rank}\nclick to select`, () => { port = r.code; remember('port', port); $('#port-select').value = port; renderPort(); });
+      }
+    });
+  }
+  function renderPort() {
+    const p = portList.find((r) => r.code === port) || portList[0]; port = p.code;
+    const rate = rateBy[p.code], calls = callsBy[p.code], docks = DATA.docksByPort[p.code];
+    const name = p.name.replace('Detroit-Wayne County Port', 'Detroit');
+    const share = Math.round(100 * p.foreign / p.total);
+    $('#ports-answer').innerHTML = `<b>${name}</b> moved <b>${fmt(p.total)} short tons in 2023</b>, ${fmt(p.domestic)} of it domestic (${100 - share}%) and ${fmt(p.foreign)} foreign — rank ${p.rank} of the 150 US principal ports. ` +
+      (rate ? (rate.implausible ? `AIS saw ${rate.calls} cargo-vessel calls here over nine days, but the typical stop lasted ${rate.dwell} hours, so the calls are vessels crossing the port polygon, not loading — <b>the tons-per-call rate is not credible here</b> and the page says so rather than showing it.` :
+        `Against the ${rate.calls} cargo-vessel calls AIS saw over nine days, that is <b>about ${fmt(rate.tpc)} tons per vessel call</b>, with a median ${rate.dwell} hours at berth — a floor, scaled from a summer sample.`) :
+        `Too few cargo-vessel calls were observed in nine days of AIS to rate tons per call (the rule needs three with both ends seen).`);
+    const C = $('#port-cards'); C.innerHTML = '';
+    card(C, '2023 tonnage', fmtM(p.total), `rank ${p.rank} nationally · ${share}% foreign`);
+    if (rate) card(C, 'tons per vessel call', rate.implausible ? 'not credible' : fmt(rate.tpc), rate.implausible ? `median dwell ${rate.dwell} h: crossing, not loading` : `median dwell ${rate.dwell} h · floor from 9 days`, rate.implausible ? 'warn' : 'warn');
+    else card(C, 'tons per vessel call', '—', 'under 3 cargo calls observed');
+    card(C, 'port calls seen (9 days)', calls ? fmt(calls.calls) : '0', calls ? `${calls.vessels} distinct vessels · ${calls.cargo} cargo, both ends observed` : 'none detected in the window');
+    card(C, 'docks on the Corps list', docks ? docks.n : '0', docks ? `${docks.depth} with a berth depth · ${docks.commodities} name commodities` : 'no facilities attributed to this port code');
+    $('#ports-prov').innerHTML = `<b>Sources</b> USACE Waterborne Commerce Statistics Center, Principal Ports (release wcsc_port_tonnage/${R.wcsc_port_tonnage}) · port calls sql-derived from AIS/${R.ais_positions} ∩ port polygons, berth by nearest dock (port_calls/${R.port_calls}, port_call_rates/${R.port_call_rates}) · USACE Master Docks Plus (usace_docks/${R.usace_docks}) · <b>uncertainty</b> administrative; AIS-derived figures self-reported · <b>unit</b> short tons`;
+    drawPorts();
+  }
+  {
+    const s = $('#port-select');
+    portList.forEach((p) => { const o = document.createElement('option'); o.value = p.code; o.textContent = p.name.replace('Detroit-Wayne County Port', 'Detroit'); s.appendChild(o); });
+    s.value = port; s.addEventListener('change', () => { port = s.value; remember('port', port); renderPort(); });
+    table('#tbl-tonnage', [{ h: 'port', f: (r) => r.name }, { h: 'code', f: (r) => 'port:' + r.code }, { h: 'total tons', num: true, f: (r) => fmt(r.total) }, { h: 'domestic', num: true, f: (r) => fmt(r.domestic) }, { h: 'foreign', num: true, f: (r) => fmt(r.foreign) }, { h: 'US rank', num: true, f: (r) => r.rank }, { h: 'tons/call', num: true, f: (r) => rateBy[r.code] ? fmt(rateBy[r.code].tpc) + (rateBy[r.code].implausible ? ' ⚑' : '') : '—' }], portList);
+    renderPort();
+  }
+
+  // ---------- Soo ----------
+  {
+    const [n, vessels, medLock, over60, d0, d1] = DATA.sooTotals; const rows = DATA.soo;
+    const worst = [...rows].sort((a, b) => b[3] - a[3]).slice(0, 2).map((r) => r[0].slice(5));
+    $('#soo-answer').innerHTML = `<b>${fmt(n)} lockages by ${vessels} vessels between ${d0} and ${d1}</b>, about ${(n / rows.length).toFixed(0)} a day. The median wait to enter is zero — a vessel usually goes straight in — and the median lockage takes ${medLock} minutes. ${over60} transits waited more than an hour; the worst days for waiting were ${worst.join(' and ')}.`;
+    const svg = $('#svg-soo'); clear(svg);
+    const W = 900, L = 56, Rr = 16, top = 14, h1 = 150, gap = 44, h2 = 110, bottom = 30; const H = top + h1 + gap + h2 + bottom;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`); defs(svg);
+    const bw = (W - L - Rr) / rows.length, x = (i) => L + i * bw, maxN = 40, maxQ = 120;
+    const y1 = (v) => top + h1 - (v / maxN) * h1, y2 = (v) => top + h1 + gap + h2 - (v / maxQ) * h2;
+    [0, 10, 20, 30, 40].forEach((t) => { el('line', { x1: L, x2: W - Rr, y1: y1(t), y2: y1(t), class: 'grid' }, svg); el('text', { x: L - 8, y: y1(t) + 4, 'text-anchor': 'end', class: 'lab' }, svg, t); });
+    [0, 60, 120].forEach((t) => { el('line', { x1: L, x2: W - Rr, y1: y2(t), y2: y2(t), class: 'grid' }, svg); el('text', { x: L - 8, y: y2(t) + 4, 'text-anchor': 'end', class: 'lab' }, svg, t); });
+    el('text', { x: L, y: top - 3, class: 'lab' }, svg, 'LOCKAGES PER DAY'); el('text', { x: L, y: top + h1 + gap - 6, class: 'lab' }, svg, '90TH-PERCENTILE WAIT TO ENTER, MINUTES');
+    rows.forEach((r, i) => { const [d, cnt, q50, q90, v] = r; const g = el('g', {}, svg); el('rect', { x: x(i) + 1, y: y1(cnt), width: bw - 2, height: y1(0) - y1(cnt), class: 'b1' }, g); hover(el('rect', { x: x(i), y: top, width: bw, height: H - top - bottom, class: 'hit' }, g), `${d}\n${cnt} lockages · ${v} vessels\nwait: median ${q50} min · 90th pct ${q90} min`); });
+    el('path', { d: rows.map((r, i) => `${i ? 'L' : 'M'}${(x(i) + bw / 2).toFixed(1)},${y2(r[3]).toFixed(1)}`).join(' '), class: 'l1' }, svg);
+    const top2 = [...rows].sort((a, b) => b[3] - a[3]).slice(0, 2).map((r) => r[0]);
+    rows.forEach((r, i) => { if (top2.includes(r[0])) { el('circle', { cx: x(i) + bw / 2, cy: y2(r[3]), r: 4, class: 'dot' }, svg); el('text', { x: x(i) + bw / 2, y: y2(r[3]) - 9, 'text-anchor': 'middle', class: 'val' }, svg, r[3] + ' min'); } });
+    el('line', { x1: L, x2: W - Rr, y1: y1(0), y2: y1(0), class: 'axis' }, svg); el('line', { x1: L, x2: W - Rr, y1: y2(0), y2: y2(0), class: 'axis' }, svg);
+    rows.forEach((r, i) => { const d = r[0]; if (d.endsWith('-01') || d.endsWith('-15') || i === 0) el('text', { x: x(i) + bw / 2, y: H - 10, 'text-anchor': 'middle', class: 'lab' }, svg, d.slice(5)); });
+    $('#soo-prov').innerHTML = `<b>Source</b> USACE Lock Performance Monitoring System, St. Marys Falls Canal (lock H7-SM-01) · <b>release</b> lpms_lock_transits/${RC.lpms_lock_transits}, lpms_vessels/${RC.lpms_vessels} (capture) · <b>unit</b> minutes · <b>uncertainty</b> administrative · <b>coverage</b> one lock; history begins ${d0}, the day collection started`;
+    table('#tbl-soo', [{ h: 'day', f: (r) => r[0] }, { h: 'lockages', num: true, f: (r) => r[1] }, { h: 'vessels', num: true, f: (r) => r[4] }, { h: 'median wait min', num: true, f: (r) => r[2] }, { h: 'p90 wait min', num: true, f: (r) => r[3] }], rows);
+  }
+
+  // ---------- gauges ----------
+  const byGauge = (arr) => { const m = {}; arr.forEach((r) => { (m[r[0]] = m[r[0]] || {})[r[1]] = r; }); return m; };
+  const LV = byGauge(DATA.levels), WD = byGauge(DATA.wind), TP = byGauge(DATA.temp);
+  let gauge = recall('gauge', '9075065');
+  function linePanel(svg, ox, oy, pw, ph, series, opts) {
+    const L = 52; const vals = series.filter((v) => v != null && v.y != null);
+    let lo = Math.min(...vals.map((v) => Math.min(v.y, v.y2 ?? v.y))), hi = Math.max(...vals.map((v) => Math.max(v.y, v.y2 ?? v.y)));
+    if (opts.ref != null) { lo = Math.min(lo, opts.ref); hi = Math.max(hi, opts.ref); }
+    const pad = (hi - lo) * 0.08 || 0.1; lo -= pad; hi += pad;
+    const x = (i) => ox + L + (i / (months.length - 1)) * (pw - L - 10), y = (v) => oy + ph - ((v - lo) / (hi - lo)) * ph;
+    el('text', { x: ox + L, y: oy - 8, class: 'strong' }, svg, opts.title);
+    const step = opts.step || (hi - lo > 4 ? 2 : hi - lo > 1 ? 0.5 : 0.2);
+    for (let t = Math.ceil(lo / step) * step; t <= hi; t += step) { el('line', { x1: ox + L, x2: ox + pw - 10, y1: y(t), y2: y(t), class: 'grid' }, svg); el('text', { x: ox + L - 6, y: y(t) + 4, 'text-anchor': 'end', class: 'lab' }, svg, opts.fmt(t)); }
+    if (opts.ref != null) { el('line', { x1: ox + L, x2: ox + pw - 10, y1: y(opts.ref), y2: y(opts.ref), class: 'ref' }, svg); el('text', { x: ox + pw - 12, y: y(opts.ref) - 5, 'text-anchor': 'end', class: 'lab' }, svg, opts.refLabel); }
+    const path = (key, cls) => { let d = '', prev = false; series.forEach((v, i) => { const val = v && v[key]; if (val == null) { prev = false; return; } d += (prev ? ' L' : ' M') + x(i).toFixed(1) + ',' + y(val).toFixed(1); prev = true; }); if (d) el('path', { d: d.trim(), class: cls }, svg); };
+    if (series.some((v) => v && v.y2 != null)) path('y2', 'l2');
+    path('y', 'l1');
+    series.forEach((v, i) => { if ((!v || v.y == null) && i > 0 && i < months.length - 1 && series[i - 1] && series[i - 1].y != null && series[i + 1] && series[i + 1].y != null) { el('line', { x1: x(i - 1), y1: y(series[i - 1].y), x2: x(i + 1), y2: y(series[i + 1].y), class: 'gap' }, svg); } });
+    const lastIdx = series.map((v, i) => v && v.y != null ? i : -1).filter((i) => i >= 0).pop();
+    if (lastIdx != null) { el('circle', { cx: x(lastIdx), cy: y(series[lastIdx].y), r: 4, class: 'dot' }, svg); el('text', { x: x(lastIdx) - 8, y: y(series[lastIdx].y) - 9, 'text-anchor': 'end', class: 'val' }, svg, opts.fmt(series[lastIdx].y) + ' ' + opts.unit); }
+    months.forEach((m, i) => { if (m.endsWith('-01-01')) { el('line', { x1: x(i), x2: x(i), y1: oy, y2: oy + ph, class: 'grid' }, svg); el('text', { x: x(i), y: oy + ph + 16, 'text-anchor': 'middle', class: 'lab' }, svg, m.slice(0, 4)); } });
+    months.forEach((m, i) => { const v = series[i]; hover(el('rect', { x: x(i) - (pw - L) / months.length / 2, y: oy, width: (pw - L) / months.length, height: ph, class: 'hit' }, svg), `${opts.title}\n${m.slice(0, 7)}: ${v && v.y != null ? opts.fmt(v.y) + ' ' + opts.unit + (v.y2 != null ? ' · ' + opts.extreme + ' ' + opts.fmt(v.y2) : '') : 'not loaded'}`); });
+  }
+  function renderGauge() {
+    const g = DATA.gauges.find((s) => s.id === gauge) || DATA.gauges[0]; gauge = g.id;
+    const hasW = DATA.windStations.includes(g.id), hasT = DATA.tempStations.includes(g.id);
+    const lv = LV[g.id] || {}, wd = WD[g.id] || {}, tp = TP[g.id] || {};
+    const a23 = lv['2023-08-01'] && lv['2023-08-01'][2], a26 = lv['2026-08-01'] && lv['2026-08-01'][2];
+    const low = Object.values(lv).reduce((a, r) => (!a || r[2] < a[2]) ? r : a, null);
+    let txt = `<b>${g.name}</b>. `;
+    if (a23 != null && a26 != null) txt += `The lake here stood at <b>${a26.toFixed(2)} m</b> in August 2026, <b>${Math.abs(Math.round((a26 - a23) * 100))} cm ${a26 < a23 ? 'lower' : 'higher'} than August 2023</b>; the low month was ${low[1].slice(0, 7)} at ${low[2].toFixed(2)} m. `;
+    if (hasW) { const windy = Object.values(wd).sort((a, b) => b[4] - a[4])[0]; const gust = Object.values(wd).sort((a, b) => b[3] - a[3])[0]; if (windy) txt += `Wind reached Small Craft Advisory strength (≥10.8 m/s) for <b>${Math.round(windy[4] * 100)}% of ${windy[1].slice(0, 7)}</b>, the windiest month on record here; the strongest gust was ${gust[3]} m/s in ${gust[1].slice(0, 7)}. `; }
+    if (hasT) { const cold = Object.values(tp).sort((a, b) => a[3] - b[3])[0]; const warm = Object.values(tp).sort((a, b) => b[2] - a[2])[0]; if (cold) txt += `Water fell to <b>${cold[3]} °C in ${cold[1].slice(0, 7)}</b> and averaged ${warm[2]} °C in ${warm[1].slice(0, 7)}, the warmest month. `; }
+    if (!hasW && !hasT) txt += `This gauge reports level only; it lists no anemometer or water thermometer.`;
+    $('#gauge-answer').innerHTML = txt;
+    $('#gauge-sensors').textContent = `sensors: level${hasW ? ' · wind' : ''}${hasT ? ' · water temperature' : ''}`;
+    const svg = $('#svg-gauge'); clear(svg); defs(svg);
+    const panels = 1 + (hasW ? 1 : 0) + (hasT ? 1 : 0), ph = 140, gy = 46, top = 26; const H = top + panels * (ph + gy) - gy + 30;
+    svg.setAttribute('viewBox', `0 0 900 ${H}`);
+    let oy = top;
+    linePanel(svg, 10, oy, 880, ph, months.map((m) => lv[m] ? { y: lv[m][2] } : null), { title: 'Water level, monthly mean', unit: 'm IGLD', fmt: (v) => v.toFixed(2), step: 0.2 }); oy += ph + gy;
+    if (hasW) { linePanel(svg, 10, oy, 880, ph, months.map((m) => wd[m] ? { y: wd[m][2], y2: wd[m][3] } : null), { title: 'Wind: monthly mean speed, and the month\'s peak gust', unit: 'm/s', fmt: (v) => v.toFixed(1), ref: 10.8, refLabel: 'small craft 10.8 m/s', extreme: 'gust', step: 5 }); oy += ph + gy; }
+    if (hasT) { linePanel(svg, 10, oy, 880, ph, months.map((m) => tp[m] ? { y: tp[m][2], y2: tp[m][3] } : null), { title: 'Water temperature: monthly mean, and the month\'s coldest reading', unit: '°C', fmt: (v) => v.toFixed(1), ref: 0, refLabel: 'freezing', extreme: 'min', step: 5 }); }
+    $('#gauge-prov').innerHTML = `<b>Source</b> NOAA CO-OPS gauge ${g.id} (${g.lat.toFixed(3)}, ${g.lon.toFixed(3)}) · <b>releases</b> coops_water_levels/${R.coops_water_levels}, coops_stations/${R.coops_stations}${hasW ? `, coops_wind/${R.coops_wind}` : ''}${hasT ? `, coops_water_temperature/${R.coops_water_temperature}` : ''} · <b>uncertainty</b> administrative · <b>aggregation</b> none — a level, a speed and a temperature are states, not quantities`;
+  }
+  {
+    const s = $('#gauge-select');
+    DATA.gauges.forEach((g) => { const o = document.createElement('option'); o.value = g.id; const w = DATA.windStations.includes(g.id), t = DATA.tempStations.includes(g.id); o.textContent = g.name + (w || t ? `  (${[w ? 'wind' : null, t ? 'temp' : null].filter(Boolean).join(', ')})` : ''); s.appendChild(o); });
+    s.value = gauge; s.addEventListener('change', () => { gauge = s.value; remember('gauge', gauge); renderGauge(); });
+    renderGauge();
+  }
+
+  // ---------- ice ----------
+  const seasonOf = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return m >= 11 ? y + 1 : y; };
+  const dayOfSeason = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7), day = +d.slice(8, 10); const start = Date.UTC(m >= 11 ? y : y - 1, 10, 1); return Math.round((Date.UTC(y, m - 1, day) - start) / 86400000); };
+  const basinBySeason = {}; DATA.iceBasin.forEach(([d, v]) => { (basinBySeason[seasonOf(d)] = basinBySeason[seasonOf(d)] || []).push([dayOfSeason(d), v, d]); });
+  const peaksBySeason = {}; DATA.icePeaks.forEach((r) => { (peaksBySeason[r[0]] = peaksBySeason[r[0]] || {})[r[1]] = r; });
+  let iceYear = +recall('ice', '2026');
+  function renderIce() {
+    const yr = iceYear; $('#ice-year-label').textContent = `winter ${yr - 1}–${String(yr).slice(2)}`;
+    const P = peaksBySeason[yr] || {}, basin = P['Great Lakes'];
+    const all = Object.values(peaksBySeason).map((s) => s['Great Lakes']).filter(Boolean).sort((a, b) => b[2] - a[2]);
+    const rank = all.findIndex((r) => r[0] === yr) + 1;
+    $('#ice-answer').innerHTML = basin ? `In the winter of ${yr - 1}–${String(yr).slice(2)} the lakes peaked at <b>${basin[2]}% ice on ${basin[3]}</b>, the ${rank === 1 ? 'most' : rank === all.length ? 'least' : `${rank}${['st','nd','rd'][rank-1] || 'th'} most`} of ${all.length} winters charted, with <b>${basin[4]} days at 10% or more</b>. ${['Erie', 'Superior', 'Huron', 'Michigan'].map((l) => P[l] ? `${l} ${P[l][2]}%` : null).filter(Boolean).join(' · ')}.` : 'No charts for this winter.';
+    const C = $('#ice-cards'); C.innerHTML = '';
+    ['Superior', 'Michigan', 'Huron', 'Erie', 'Ontario', 'St. Clair'].forEach((l) => { const r = P[l]; card(C, l, r ? r[2] + '%' : '—', r ? `peak ${r[3]} · ${r[4]} days ≥10%` : 'no chart'); });
+    const svg = $('#svg-ice'); clear(svg); defs(svg);
+    const W = 900, L = 52, top = 14, ph = 220, bottom = 30; svg.setAttribute('viewBox', `0 0 ${W} ${top + ph + bottom}`);
+    const x = (d) => L + (d / 212) * (W - L - 16), y = (v) => top + ph - (v / 100) * ph;
+    [0, 25, 50, 75, 100].forEach((t) => { el('line', { x1: L, x2: W - 16, y1: y(t), y2: y(t), class: 'grid' }, svg); el('text', { x: L - 8, y: y(t) + 4, 'text-anchor': 'end', class: 'lab' }, svg, t + '%'); });
+    [['Nov', 0], ['Dec', 30], ['Jan', 61], ['Feb', 92], ['Mar', 120], ['Apr', 151], ['May', 181]].forEach(([m, d]) => el('text', { x: x(d), y: top + ph + 18, class: 'lab' }, svg, m));
+    const draw = (season, cls) => { const s = basinBySeason[season]; if (!s) return; el('path', { d: s.map((p, i) => `${i ? 'L' : 'M'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' '), class: cls }, svg); };
+    draw(2014, 'l2'); draw(2024, 'l3'); draw(yr, 'l1');
+    el('line', { x1: L, x2: W - 16, y1: y(0), y2: y(0), class: 'axis' }, svg);
+    (basinBySeason[yr] || []).forEach((p) => hover(el('rect', { x: x(p[0]) - 2, y: top, width: 4.2, height: ph, class: 'hit' }, svg), `${p[2]}\nbasin ${p[1]}% ice`));
+    if (basin) { const pk = (basinBySeason[yr] || []).find((p) => p[2] === basin[3]); if (pk) { el('circle', { cx: x(pk[0]), cy: y(pk[1]), r: 4, class: 'dot' }, svg); el('text', { x: x(pk[0]) + 8, y: y(pk[1]) - 6, class: 'val strong' }, svg, `${basin[2]}%`); } }
+    $('#ice-prov').innerHTML = `<b>Source</b> NOAA GLERL, Great Lakes Ice Concentration, Daily (ERDDAP glerlIce) · <b>release</b> glerl_ice_cover/${R.glerl_ice_cover} · <b>unit</b> percent of surface · <b>uncertainty</b> declared administrative for want of a remote-sensing kind (recorded as debt) · <b>aggregation</b> none`;
+    table('#tbl-ice', [{ h: 'lake', f: (r) => r[1] }, { h: 'peak %', num: true, f: (r) => r[2] }, { h: 'peak day', f: (r) => r[3] }, { h: 'days ≥10%', num: true, f: (r) => r[4] }], Object.values(P));
+  }
+  { const r = $('#ice-year'); r.value = iceYear; r.addEventListener('input', () => { iceYear = +r.value; remember('ice', iceYear); renderIce(); }); renderIce(); }
+
+  // ---------- county ----------
+  const sbaByCounty = {}; DATA.sbaByCounty.forEach((r) => { (sbaByCounty[r.geo] = sbaByCounty[r.geo] || []).push(r); });
+  const q483 = Object.fromEntries(DATA.qcew483.filter((r) => r[0] !== '26000' && r[0] !== '26999').map((r) => [r[0], r]));
+  // BLS area 26999, 'Unknown or Undefined': establishments it could put in no county. Published, and never a county.
+  const un483 = DATA.qcew483.find((r) => r[0] === '26999');
+  const countyTotals = Object.entries(sbaByCounty).map(([geo, rs]) => ({ geo, name: DATA.counties[geo] || geo, n: rs.reduce((a, r) => a + r.n, 0), usd: rs.reduce((a, r) => a + r.usd, 0), jobs: rs.reduce((a, r) => a + r.jobs, 0) })).sort((a, b) => b.usd - a.usd);
+  const countyList = [...new Set([...Object.keys(sbaByCounty), ...Object.keys(q483), ...Object.keys(DATA.docksByCounty)])].map((g) => ({ geo: g, name: DATA.counties[g] || g })).sort((a, b) => a.name.localeCompare(b.name));
+  let county = recall('county', '26139');
+  function renderCounty() {
+    const c = countyList.find((r) => r.geo === county) || countyList[0]; county = c.geo;
+    const sba = sbaByCounty[c.geo] || [], tot = countyTotals.find((r) => r.geo === c.geo), q = q483[c.geo], docks = DATA.docksByCounty[c.geo] || 0;
+    const rank = tot ? countyTotals.findIndex((r) => r.geo === c.geo) + 1 : null;
+    const top = [...sba].sort((a, b) => b.usd - a.usd)[0];
+    let txt = `<b>${c.name} County.</b> `;
+    txt += tot ? `SBA has backed <b>${tot.n} loan${tot.n > 1 ? 's' : ''} worth ${usd(tot.usd)}</b> to water businesses here since ${DATA.sbaTotals.from} — ${rank === 1 ? 'the most' : `${rank}${['st','nd','rd'][rank-1]||'th'}`} of ${countyTotals.length} Michigan counties — supporting ${fmt(tot.jobs)} jobs by the borrowers' own count; ${top.group} took the largest share (${usd(top.usd)}). ` : `No SBA-backed loan to a water business is recorded here. `;
+    txt += q ? (q[3] ? `BLS counts <b>${q[1]} private water-transportation establishment${q[1] > 1 ? 's' : ''}</b> here in 2023 and <b>withholds their employment</b> to protect them. ` : `BLS publishes <b>${q[2]} private water-transportation jobs</b> at ${q[1]} establishments here in 2023. `) : `BLS lists no private water-transportation establishment here in 2023. `;
+    txt += docks ? `The Army Corps lists <b>${docks} dock facilities</b> in the county.` : `The Army Corps lists no dock facility in the county.`;
+    $('#county-answer').innerHTML = txt;
+    const C = $('#county-cards'); C.innerHTML = '';
+    card(C, 'SBA water loans', tot ? tot.n : '0', tot ? `${usd(tot.usd)} approved · ${fmt(tot.jobs)} jobs` : 'none recorded');
+    ['marinas', 'boat & ship building', 'water transport & port services'].forEach((g) => { const r = sba.find((s) => s.group === g); card(C, g, r ? usd(r.usd) : '—', r ? `${r.n} loan${r.n > 1 ? 's' : ''}` : 'no loans'); });
+    card(C, 'water-transport jobs, 2023', q ? (q[3] ? 'withheld' : fmt(q[2])) : 'none listed', q ? `${q[1]} establishment${q[1] > 1 ? 's' : ''}${q[3] ? ' · BLS cell suppression' : ''}` : 'BLS QCEW, NAICS 483', q && q[3] ? 'hole' : '');
+    card(C, 'dock facilities', docks, 'USACE Master Docks');
+    // Two surveys, side by side. QCEW (BLS) withholds a county cell to protect a
+    // firm; CBP (Census) perturbs it with noise and, where it publishes at all,
+    // gives establishment counts by size band. Neither is shown as zero; the
+    // page shows each survey's statement and the range the size bands allow.
+    {
+      const GROUPS = [
+        ['water transportation', ['483', '4831', '4832']], ['port & harbor services', ['4883']],
+        ['marinas', ['713930']], ['boat & ship building', ['3366']], ['water & sewer utilities', ['2213']],
+        ['fishing', ['1141']], ['seafood processing', ['3117']], ['scenic water tours', ['4872']],
+        ['pumps, filtration & fluid equipment', ['3339']], ['measuring & control instruments', ['3345']]
+      ];
+      const BANDS = [['lt5', 1, 4], ['s5', 5, 9], ['s10', 10, 19], ['s20', 20, 49], ['s50', 50, 99], ['s100', 100, 249], ['s250', 250, 499], ['s500', 500, 999]];
+      const qRows = DATA.qcewBasket.filter((r) => r[0] === c.geo), qState = DATA.qcewBasket.filter((r) => r[0] === '26000');
+      const cRows = DATA.cbpBasket.filter((r) => r.geo === c.geo);
+      const NOISE = { G: 'noise under 2%', H: 'noise 2–5%', J: 'noise over 5%' };
+      const rows = GROUPS.map(([name, codes]) => {
+        const q = qRows.filter((r) => codes.includes(r[1])); const cb = cRows.filter((r) => codes.includes(r.seg));
+        if (!q.length && !cb.length) return null;
+        const qEst = q.reduce((a, r) => a + r[2], 0), qSup = q.some((r) => r[4]), qEmp = q.reduce((a, r) => a + (r[4] ? 0 : r[3]), 0);
+        const st = qState.filter((r) => codes.includes(r[1])); const stEmp = st.reduce((a, r) => a + r[3], 0);
+        const allC = DATA.qcewBasket.filter((r) => r[0] !== '26000' && r[0] !== '26999' && codes.includes(r[1]));
+        const un = DATA.qcewBasket.filter((r) => r[0] === '26999' && codes.includes(r[1])); const unPub = un.filter((r) => !r[4]).reduce((a, r) => a + r[3], 0), unSup = un.some((r) => r[4]);
+        const pubSum = allC.filter((r) => !r[4]).reduce((a, r) => a + r[3], 0), nSup = new Set(allC.filter((r) => r[4]).map((r) => r[0])).size;
+        const cEst = cb.reduce((a, r) => a + r.est, 0), cEmp = cb.reduce((a, r) => a + (r.sup ? 0 : r.emp), 0), flag = cb.map((r) => r.flag).filter(Boolean).sort().pop();
+        let lo = 0, hi = 0, banded = 0; cb.forEach((r) => BANDS.forEach(([k, a, b]) => { const n = r[k] || 0; lo += n * a; hi += n * b; banded += n; }));
+        return { name, qEst, qSup, qEmp, stEmp, pubSum, nSup, unPub, unSup, cEst, cEmp, flag, lo, hi, banded, hasQ: q.length > 0, hasC: cb.length > 0 };
+      }).filter(Boolean);
+      const host = $('#county-industries'); host.innerHTML = '';
+      if (!rows.length) { $('#county-industries-lede').textContent = 'Neither survey lists a water-basket establishment in this county for 2023.'; }
+      else {
+        const withheld = rows.filter((r) => r.hasQ && r.qSup).length;
+        $('#county-industries-lede').innerHTML = `${rows.length} water industr${rows.length > 1 ? 'ies' : 'y'} present. BLS withholds employment for ${withheld} of them here; where the Census Bureau publishes a noise-infused figure for the same industry it is shown beside it — the warehouse's verdict on that pairing is <b>${DATA.cbpVsQcew.verdict.replace(/_/g, ' ')}</b> (${DATA.cbpVsQcew.source} by a person): ${DATA.cbpVsQcewReason}`;
+        const t = document.createElement('table'); const th = t.createTHead().insertRow();
+        ['industry', 'BLS establishments', 'BLS jobs', 'what the arithmetic allows', 'Census jobs (noise-infused)', 'Census size-band range'].forEach((x, i) => { const e = document.createElement('th'); e.textContent = x; if (i) e.className = 'num'; th.appendChild(e); });
+        const tb = t.createTBody();
+        rows.forEach((r) => { const tr = tb.insertRow(); const cells = [r.name,
+          r.hasQ ? fmt(r.qEst) : '—',
+          r.hasQ ? (r.qSup ? 'withheld' : fmt(r.qEmp)) : '—',
+          r.hasQ && r.qSup ? `${fmt(r.stEmp - r.pubSum)} jobs across the ${r.nSup} withheld counties${r.unSup ? ' and the no-county cell' : ''}, together` : (r.hasQ ? 'published' : '—'),
+          r.hasC ? (r.cEmp ? `${fmt(r.cEmp)} · ${NOISE[r.flag] || r.flag || ''}` : 'withheld') : 'no county row',
+          r.hasC && r.banded ? `${fmt(r.lo)}–${fmt(r.hi)} (${r.banded} of ${r.cEst} establishments banded)` : '—'];
+          cells.forEach((v, i) => { const td = tr.insertCell(); td.textContent = v; if (i) td.className = 'num'; if (i === 2 && v === 'withheld') td.style.color = 'var(--chip-hole)'; }); });
+        host.appendChild(t);
+      }
+      $('#county-industries-prov').innerHTML = `<b>Sources</b> BLS QCEW annual averages 2023, private (qcew_annual/${R.qcew_annual}) · Census County Business Patterns 2023 (cbp_annual/${DATA.releases.cbp_annual}) · <b>verdict</b> measure_comparability/${R.measure_comparability} · a Census size band gives each establishment's employee count as a range; the sum of band minimums and maximums is the honest range for the county, from published data, no modelling. Never shown: the state total spread evenly across counties — 2,789 boat-building jobs ÷ 48 establishments would put 174 in Allegan, where the Census counts 415 at one large yard.`;
+    }
+
+    // by-year chart, county highlighted
+    const svg = $('#svg-sba-year'); clear(svg); defs(svg);
+    const rows = DATA.sbaByYear; const W = 900, L = 60, top2 = 14, ph = 170, bottom = 28; svg.setAttribute('viewBox', `0 0 ${W} ${top2 + ph + bottom}`);
+    const max = Math.max(...rows.map((r) => r.usd)); const bw = (W - L - 16) / rows.length; const x = (i) => L + i * bw, y = (v) => top2 + ph - (v / max) * ph;
+    [0, 0.5, 1].forEach((f) => { el('line', { x1: L, x2: W - 16, y1: y(max * f), y2: y(max * f), class: 'grid' }, svg); el('text', { x: L - 8, y: y(max * f) + 4, 'text-anchor': 'end', class: 'lab' }, svg, usd(max * f)); });
+    rows.forEach((r, i) => { const g = el('g', {}, svg); el('rect', { x: x(i) + 2, y: y(r.usd), width: bw - 4, height: y(0) - y(r.usd), class: 'b1 dim' }, g); hover(el('rect', { x: x(i), y: top2, width: bw, height: ph, class: 'hit' }, g), `${r.year}\n${r.n} loan${r.n > 1 ? 's' : ''} · ${usd(r.usd)} approved (all Michigan)`); el('text', { x: x(i) + bw / 2, y: top2 + ph + 16, 'text-anchor': 'middle', class: 'lab' }, svg, String(r.year).slice(2)); });
+    el('line', { x1: L, x2: W - 16, y1: y(0), y2: y(0), class: 'axis' }, svg);
+    el('text', { x: L, y: top2 - 3, class: 'lab' }, svg, 'SBA-BACKED LOANS TO WATER BUSINESSES, MICHIGAN, $ APPROVED PER YEAR — all counties; per-county years are in the table');
+    $('#county-prov').innerHTML = `<b>Sources</b> SBA 7(a) and 504 loan detail (release sba_loan_detail/${R.sba_loan_detail}) · BLS QCEW annual averages, NAICS 483, private, 2023 (qcew_annual/${R.qcew_annual}) · USACE Master Docks Plus (usace_docks/${R.usace_docks}) · <b>uncertainty</b> administrative; QCEW cell suppression · <b>unit</b> US dollars approved, jobs, facilities`;
+  }
+  {
+    const s = $('#county-select');
+    countyList.forEach((c) => { const o = document.createElement('option'); o.value = c.geo; o.textContent = c.name; s.appendChild(o); });
+    s.value = county; s.addEventListener('change', () => { county = s.value; remember('county', county); renderCounty(); });
+    table('#tbl-sba', [{ h: 'county', f: (r) => r.name }, { h: 'loans', num: true, f: (r) => r.n }, { h: '$ approved', num: true, f: (r) => fmt(r.usd) }, { h: 'jobs supported', num: true, f: (r) => fmt(r.jobs) }], countyTotals);
+    renderCounty();
+  }
+
+  // ---------- QCEW ----------
+  {
+    const state = DATA.qcew483.find((r) => r[0] === '26000');
+    const rows = DATA.qcew483.filter((r) => r[0] !== '26000' && r[0] !== '26999').map(([fips, est, emp, sup]) => ({ fips, name: DATA.counties[fips] || fips, est, emp, sup }));
+    const pub = rows.filter((r) => !r.sup), sup = rows.filter((r) => r.sup); const pubSum = pub.reduce((a, r) => a + r.emp, 0);
+    const unEmp = un483 && !un483[3] ? un483[2] : 0; const unRow = un483 ? { fips: 'unassigned:26', name: 'no county assigned', est: un483[1], emp: un483[2], sup: un483[3] } : null;
+    const chartRows = unRow ? [...rows, unRow] : rows;
+    $('#qcew-answer').innerHTML = `Michigan had <b>${fmt(state[2])} private water-transportation jobs at ${state[1]} establishments in 2023</b>, by BLS's employer filings. At county level the Bureau publishes ${pub.length} counties — ${pub.map((r) => r.name).join(', ')}, ${fmt(pubSum)} jobs together — and <b>withholds the other ${sup.length}</b>, ${sup.sort((a, b) => b.est - a.est)[0].name} County's ${sup.sort((a, b) => b.est - a.est)[0].est} employers included, because so few firms would identify each one. BLS also publishes <b>${fmt(unEmp)} jobs at ${un483 ? un483[1] : 0} establishments it could assign to no county</b>. What can still be said: the ${sup.length} withheld counties hold <b>${fmt(state[2] - pubSum - unEmp)} jobs between them</b>.`;
+    const svg = $('#svg-qcew'); clear(svg); const W = 900, labW = 150, rowH = 24, top = 8, right = 250; const H = top + chartRows.length * rowH + 40; svg.setAttribute('viewBox', `0 0 ${W} ${H}`); defs(svg);
+    const max = Math.max(...pub.map((r) => r.emp)); const x = (v) => labW + (v / max) * (W - labW - right);
+    chartRows.forEach((r, i) => { const y = top + i * rowH, bh = rowH - 8; el('text', { x: labW - 12, y: y + bh / 2 + 4, 'text-anchor': 'end' }, svg, r.name); const g = el('g', {}, svg);
+      if (!r.sup) { el('rect', { x: x(0), y, width: x(r.emp) - x(0), height: bh, class: 'b1' }, g); el('text', { x: x(r.emp) + 10, y: y + bh / 2 + 4, class: 'val' }, g, `${r.emp} jobs · ${r.est} establishment${r.est > 1 ? 's' : ''}`); }
+      else { const w = 60 + r.est * 12; el('rect', { x: x(0), y, width: w, height: bh, class: 'withheld' }, g); el('text', { x: x(0) + w + 10, y: y + bh / 2 + 4, class: 'val' }, g, `withheld · ${r.est} establishment${r.est > 1 ? 's' : ''}`); }
+      hover(el('rect', { x: x(0), y: y - 2, width: W - x(0), height: bh + 4, class: 'hit' }, g), `${r.fips === 'unassigned:26' ? 'Michigan, no county assigned (BLS area 26999)' : r.name + ' County'} · NAICS 483, private, 2023\n${r.sup ? 'employment withheld by BLS (cell suppression)' : r.emp + ' jobs'}\n${r.est} establishment${r.est > 1 ? 's' : ''}`); });
+    el('line', { x1: labW, y1: top - 2, x2: labW, y2: top + chartRows.length * rowH, class: 'axis' }, svg);
+    el('text', { x: labW, y: top + chartRows.length * rowH + 22, class: 'strong' }, svg, `State total ${fmt(state[2])} − published counties ${fmt(pubSum)} − no county ${fmt(unEmp)} = ${fmt(state[2] - pubSum - unEmp)} jobs in the ${sup.length} withheld counties, together.`);
+    $('#qcew-prov').innerHTML = `<b>Source</b> U.S. Bureau of Labor Statistics, QCEW annual averages, NAICS 483 Water Transportation, private ownership, 2023 · <b>release</b> qcew_annual/${R.qcew_annual} · <b>unit</b> jobs · <b>uncertainty</b> cell suppression · <b>aggregation</b> sum`;
+    table('#tbl-qcew', [{ h: 'county', f: (r) => r.name }, { h: 'geo_id', f: (r) => r.fips }, { h: 'establishments', num: true, f: (r) => r.est }, { h: 'employment', num: true, f: (r) => r.sup ? 'withheld' : r.emp }], chartRows);
+  }
+
+  // ---------- insights (computed) ----------
+  {
+    const list = $('#insight-list'); const add = (html, cite) => { const d = h('div', 'insight', list); h('div', 'n', d, String(list.children.length + 1)); const b = h('div', '', d, html); h('span', 'cite', b, cite); };
+    const tot = DATA.tonnage.reduce((a, r) => a + r.total, 0), det = DATA.tonnage[0];
+    add(`Michigan's ten principal ports moved <b>${fmtM(tot)} short tons in 2023</b>; Detroit alone ${fmtM(det.total)}. ${DATA.tonnage.filter((r) => r.foreign > r.domestic).map((r) => r.name).join(', ') || 'None'} is the only one where foreign trade is the larger half — the rest is the domestic lakes trade in ore, stone and coal.`, `wcsc_port_tonnage/${R.wcsc_port_tonnage}`);
+    const cred = DATA.rates.filter((r) => !r.implausible).sort((a, b) => b.tpc - a.tpc);
+    add(`Where AIS saw enough loading calls to rate a port, a visit moves between <b>${fmt(cred[cred.length - 1].tpc)} tons (${cred[cred.length - 1].name})</b> and <b>${fmt(cred[0].tpc)} tons (${cred[0].name})</b>, and the rate rises with time at berth exactly as loading physics says it should. These are floors from nine days; a season of AIS would make them estimates.`, `port_call_rates/${R.port_call_rates}`);
+    const sT = DATA.sbaTotals; const byGroup = {}; DATA.sbaByCounty.forEach((r) => { byGroup[r.group] = (byGroup[r.group] || 0) + r.usd; }); const topG = Object.entries(byGroup).sort((a, b) => b[1] - a[1]);
+    add(`Since ${sT.from} the SBA has backed <b>${sT.n} loans, ${usd(sT.usd)} approved</b>, to water businesses in Michigan counties, ${usd(sT.guaranteed)} of it federally guaranteed, supporting ${fmt(sT.jobs)} jobs by the borrowers' count. <b>${topG[0][0]}</b> took ${Math.round(100 * topG[0][1] / sT.usd)}%; ${topG[1][0]} ${Math.round(100 * topG[1][1] / sT.usd)}%. The three leading counties are ${countyTotals.slice(0, 3).map((c) => c.name).join(', ')}.`, `sba_loan_detail/${R.sba_loan_detail}`);
+    const recent = DATA.sbaByYear.filter((r) => r.year >= 2021 && r.year <= 2025), earlier = DATA.sbaByYear.filter((r) => r.year >= 2016 && r.year <= 2020);
+    const rs = recent.reduce((a, r) => a + r.usd, 0), es = earlier.reduce((a, r) => a + r.usd, 0);
+    add(`SBA water lending in Michigan ran <b>${usd(rs)} over 2021–2025 against ${usd(es)} over 2016–2020</b> — ${rs > es ? 'up' : 'down'} ${Math.abs(Math.round(100 * (rs - es) / es))}%. Approved amounts; a loan may be cancelled after approval and this table counts it either way.`, `sba_loan_detail/${R.sba_loan_detail}`);
+    const st = DATA.qcew483.find((r) => r[0] === '26000'), pubSum = DATA.qcew483.filter((r) => r[0] !== '26000' && r[0] !== '26999' && !r[3]).reduce((a, r) => a + r[2], 0), nsup = DATA.qcew483.filter((r) => r[0] !== '26000' && r[0] !== '26999' && r[3]).length, unEmp = un483 && !un483[3] ? un483[2] : 0;
+    add(`Water transportation employs <b>${fmt(st[2])} people in Michigan</b> at ${st[1]} private establishments, but BLS can publish only ${fmt(pubSum)} of those jobs by county, plus ${fmt(unEmp)} it assigns to no county at all; the other ${fmt(st[2] - pubSum - unEmp)} sit in ${nsup} counties whose figures are withheld. A dashboard that summed the published counties would report ${Math.round(100 * pubSum / st[2])}% of the industry and call it the total.`, `qcew_annual/${R.qcew_annual}`);
+    const g = (id, m) => LV[id] && LV[id][m] && LV[id][m][2]; const deltas = [['9099018', 'Superior at Marquette'], ['9075065', 'Huron at Alpena'], ['9087031', 'Michigan at Holland'], ['9063090', 'Erie at Fermi']].map(([id, n]) => [n, Math.round((g(id, '2026-08-01') - g(id, '2023-08-01')) * 100)]).filter((d) => !isNaN(d[1]));
+    add(`Every lake is lower than three summers ago, August against August: ${deltas.map((d) => `${d[0]} ${d[1]} cm`).join(', ')}. Lake level is the draft a laker can load to, so a lower lake is cargo left on the dock on every trip. (The Lake Carriers' Association's rule of thumb — not a figure in this warehouse — is that a 1,000-foot laker loses roughly 270 tons of capacity per inch of draft.)`, `coops_water_levels/${R.coops_water_levels}`);
+    const pk = Object.values(peaksBySeason).map((s) => s['Great Lakes']).filter(Boolean); const hi = pk.reduce((a, r) => r[2] > a[2] ? r : a), lo = pk.reduce((a, r) => r[2] < a[2] ? r : a), cur = peaksBySeason[2026] && peaksBySeason[2026]['Great Lakes'];
+    add(`The ice season varies more than anything else here: the basin peaked at <b>${hi[2]}% in ${hi[0]}</b> with ${hi[4]} days at 10% or more, and at <b>${lo[2]}% in ${lo[0]}</b> with ${lo[4]} such days${cur ? `; this past winter reached ${cur[2]}% and ${cur[4]} days` : ''}. That spread is the difference between a shipping season that starts in late March and one that barely paused — and why an annualised summer sample is a floor.`, `glerl_ice_cover/${R.glerl_ice_cover}`);
+    const wAll = DATA.wind.filter((r) => r[1].slice(5, 7) >= '10' || r[1].slice(5, 7) <= '03'); const windiest = wAll.sort((a, b) => b[4] - a[4])[0];
+    if (windiest) { const gname = (DATA.gauges.find((s) => s.id === windiest[0]) || {}).name; add(`Wind is the other closure: at <b>${gname}</b> in ${windiest[1].slice(0, 7)}, the wind was at or above Small Craft Advisory strength (10.8 m/s, 21 knots) for <b>${Math.round(windiest[4] * 100)}% of the month</b>, the highest share of any Michigan gauge-month loaded. For a marina, a charter or a workboat that is the operating calendar, not the weather.`, `coops_wind/${R.coops_wind}`); }
+    const tot2 = DATA.account.find((r) => r.level === 'state' && r.seg === 'total'); const boats2 = DATA.ratios.find((r) => r.level === 'state' && r.seg === '3366'); const topC = DATA.ratios.filter((r) => r.level === 'county' && r.seg === 'total' && r.lq != null).sort((a, b) => b.lq - a.lq)[0];
+    add(`Defined as nine whole industries, Michigan's freshwater economy is <b>at least ${fmt(tot2.emp)} jobs and ${usd(tot2.wages)} in wages</b> — a floor, because two state cells are withheld — against a "million jobs" headline whose definition nobody has published. The gap is tourism, manufacturing shares and induced effects, which this account excludes on purpose and names.`, `water_economy_account/${DATA.releases.water_economy_account}`);
+    add(`Boat and ship building added <b>${fmt(boats2.change)} Michigan jobs from 2020 to 2023, and ${fmt(boats2.ls)} of them are local shift</b> — growth beyond the sector's national trend. ${DATA.counties[topC.geo]} County's freshwater location quotient is ${topC.lq.toFixed(0)}: an island reached by ferry is a water economy in a way the state as a whole (${DATA.ratios.find((r) => r.level === 'state' && r.seg === 'total').lq.toFixed(2)}) is not.`, `water_economy_ratios/${DATA.releases.water_economy_ratios}`);
+    add(`In FY2025 three agencies put <b>${usd(DATA.awardsTotals.usd)} into ${fmt(DATA.awardsTotals.n)} water-admitted awards to ${DATA.awardsTotals.recipients} Michigan recipients</b>, and ${DATA.sbirTotals.companies} Michigan companies hold ${usd(DATA.sbirTotals.usd)} in water-titled SBIR awards. That is a funder map and a competitor map at once, and every row can say which rule admitted it.`, `fed_assistance_awards/${DATA.releases.fed_assistance_awards}, sbir_award_detail/${DATA.releases.sbir_award_detail}`);
+    const [n, vessels] = DATA.sooTotals;
+    add(`The Soo passed <b>${fmt(n)} lockages by ${vessels} vessels in ${DATA.soo.length} days</b>, and the median wait to enter was zero. The lock is not the bottleneck on the upper lakes in September; the ice in January is.`, `lpms_lock_transits/${RC.lpms_lock_transits} (capture)`);
+  }
+
+  // ---------- the account ----------
+  const acct = DATA.account, acctState = acct.filter((r) => r.level === 'state');
+  const acctTotal = acctState.find((r) => r.seg === 'total');
+  const AR = DATA.releases;
+  {
+    const sectors = acctState.filter((r) => r.seg !== 'total').sort((a, b) => (b.emp || 0) - (a.emp || 0));
+    const withheldCounties = acct.filter((r) => r.level === 'county' && r.seg === 'total' && r.status === 'withheld').length;
+    const floorCounties = acct.filter((r) => r.level === 'county' && r.seg === 'total' && r.status === 'bounded_below').length;
+    $('#account-answer').innerHTML = `Nine industries, declared in the registry with a written basis each, summed over every ownership — water utilities are mostly local government. <b>Michigan, 2023: at least ${fmt(acctTotal.emp)} jobs at ${fmt(acctTotal.est)} establishments, ${usd(acctTotal.wages)} in wages.</b> "At least", because BLS withholds ${acctTotal.withheld_cells} state-level cells (state-government fishing, municipal marinas), so the total is a floor. The Census Bureau's private-only count beside it is ${fmt(acctTotal.cbp)}. ${fmt(acctTotal.aq_farms)} aquaculture operations sold ${usd(acctTotal.aq_sales)} in 2022. Of 83 counties, ${floorCounties} have a floor and ${withheldCounties} are wholly withheld — this is what an honest county account looks like for small sectors.`;
+    const C = $('#account-cards'); C.innerHTML = '';
+    card(C, 'jobs (BLS, every ownership)', '≥ ' + fmt(acctTotal.emp), `${acctTotal.withheld_cells} cells withheld · a floor`, 'warn');
+    card(C, 'establishments', fmt(acctTotal.est), 'published even where jobs are not');
+    card(C, 'annual wages', usd(acctTotal.wages), 'BLS · a floor');
+    card(C, 'jobs (Census CBP, private)', fmt(acctTotal.cbp), `noise band ${acctTotal.noise} · size bands ${fmt(acctTotal.lo)}–${fmt(acctTotal.hi)}`);
+    card(C, 'aquaculture, 2022', fmt(acctTotal.aq_farms) + ' operations', usd(acctTotal.aq_sales) + ' sales');
+    const svg = $('#svg-account');
+    hbars(svg, sectors, {
+      total: (r) => Math.max(r.emp || 0, r.cbp || 0), label: (r) => r.sector.replace('Scenic and sightseeing transportation, water', 'Scenic water tours').replace('Seafood product preparation and packaging', 'Seafood processing').replace('Water, sewage and other systems', 'Water & sewer utilities'), labW: 230, rowH: 30, right: 170,
+      draw(r, y, bh, x, svg) {
+        const g = el('g', {}, svg);
+        if (r.emp != null) { el('rect', { x: x(0), y, width: Math.max(x(r.emp) - x(0), 1), height: bh, class: r.status === 'published' ? 'b1' : 'withheld' }, g); if (r.status !== 'published') el('rect', { x: x(0), y, width: Math.max(x(r.emp) - x(0), 1), height: bh, class: 'b1', opacity: 0.35 }, g); }
+        if (r.cbp != null) el('circle', { cx: x(r.cbp), cy: y + bh / 2, r: 5, fill: 'var(--s2)', stroke: 'var(--surface)', 'stroke-width': 2 }, g);
+        el('text', { x: x(Math.max(r.emp || 0, r.cbp || 0)) + 12, y: y + bh / 2 + 4, class: 'val' }, g, (r.emp != null ? (r.status === 'published' ? '' : '≥ ') + fmt(r.emp) : 'withheld') + (r.cbp != null ? ` · CBP ${fmt(r.cbp)}` : ''));
+        hover(el('rect', { x: 0, y: y - 2, width: 900, height: bh + 4, class: 'hit' }, g), `${r.sector}\nBLS: ${r.emp != null ? fmt(r.emp) + ' jobs' : 'withheld'} (${r.status.replace('_', ' ')}) · ${fmt(r.est)} establishments · ${usd(r.wages || 0)} wages\nCBP: ${r.cbp != null ? fmt(r.cbp) + ' jobs, noise ' + r.noise : 'no row'}`);
+      }
+    });
+    $('#account-caption').innerHTML = `Boat and ship building is the largest sector by jobs and entirely published at state level; marinas and commercial fishing are floors because BLS withholds their government cells. The Census figure differs by design — it counts private establishments with payroll in mid-March and adds noise. Two definitions of a job, shown side by side and never subtracted from each other.`;
+    $('#account-prov').innerHTML = `<b>Derived by</b> Localeco (\`water_economy_account\`, release ${AR.water_economy_account}) from BLS QCEW annual averages (every ownership), Census County Business Patterns (release ${DATA.releases.cbp_annual}) and the USDA Census of Agriculture, over the registry's \`freshwater_economy\` basket · every row's rule id hashes the basket · <b>uncertainty</b> cell suppression, noise infusion · <b>status vocabulary</b> published · bounded_below · withheld`;
+    table('#tbl-basket', [{ h: 'NAICS', f: (r) => r.naics }, { h: 'sector', f: (r) => r.sector }, { h: 'basis', f: (r) => r.basis }], DATA.basket);
+    table('#tbl-account', [{ h: 'county', f: (r) => r.level === 'state' ? 'Michigan' : (DATA.counties[r.geo] || r.geo) }, { h: 'sector', f: (r) => r.sector }, { h: 'establishments', num: true, f: (r) => r.est ?? '—' }, { h: 'BLS jobs', num: true, f: (r) => r.emp != null ? fmt(r.emp) : 'withheld' }, { h: 'status', f: (r) => r.status.replace('_', ' ') }, { h: 'CBP jobs', num: true, f: (r) => r.cbp != null ? fmt(r.cbp) : '—' }], acct.filter((r) => r.emp != null || r.est).sort((a, b) => (a.level === 'state' ? -1 : 1) - (b.level === 'state' ? -1 : 1) || (b.emp || 0) - (a.emp || 0)));
+  }
+
+  // ---------- ratios ----------
+  {
+    const counties = DATA.ratios.filter((r) => r.level === 'county' && r.seg === 'total' && r.lq != null).sort((a, b) => b.lq - a.lq);
+    const state = DATA.ratios.filter((r) => r.level === 'state');
+    const st = state.find((r) => r.seg === 'total'), marinas = state.find((r) => r.seg === '713930'), boats = state.find((r) => r.seg === '3366');
+    const top = counties.slice(0, 12);
+    $('#ratios-answer').innerHTML = `Michigan as a whole sits at <b>${st.lq.toFixed(2)}</b> — below the national proportion, because the nation's water economy is coastal shipping — with marinas the exception at ${marinas.lq.toFixed(2)}. By county the picture inverts: <b>${DATA.counties[top[0].geo]} ${top[0].lq.toFixed(0)}</b>, ${DATA.counties[top[1].geo]} ${top[1].lq.toFixed(0)}, ${DATA.counties[top[2].geo]} ${top[2].lq.toFixed(0)} — the northern lake counties are water economies in a way the state is not. And 2020 to 2023, Michigan boat and ship building added <b>${fmt(boats.change)} jobs, ${fmt(boats.ls)} of them local shift</b>: the state outgrew the sector's national trend.`;
+    hbars($('#svg-lq'), top, {
+      total: (r) => r.lq, label: (r) => DATA.counties[r.geo] || r.geo, labW: 170, rowH: 28, right: 120,
+      draw(r, y, bh, x, svg) {
+        const g = el('g', {}, svg);
+        el('rect', { x: x(0), y, width: Math.max(x(r.lq) - x(0), 1), height: bh, class: 'b1' }, g);
+        el('text', { x: x(r.lq) + 10, y: y + bh / 2 + 4, class: 'val' }, g, r.lq.toFixed(1) + ' × national' + (r.emp != null ? ` · ${fmt(r.emp)} jobs` : ''));
+        hover(el('rect', { x: 0, y: y - 2, width: 900, height: bh + 4, class: 'hit' }, g), `${DATA.counties[r.geo]} County\nlocation quotient ${r.lq.toFixed(2)}\n${fmt(r.emp)} freshwater-basket jobs (CBP, private)`);
+      }
+    });
+    const lqSvg = $('#svg-lq'); const maxLq = Math.max(...top.map((r) => r.lq)); const x1 = 170 + (1 / maxLq) * (900 - 170 - 120); el('line', { x1, x2: x1, y1: 6, y2: 8 + top.length * 28, class: 'ref' }, lqSvg);
+    // shift-share, stacked per sector
+    const svg = $('#svg-shift'); clear(svg); defs(svg);
+    const secs = state.filter((r) => r.seg !== 'total' && r.complete).sort((a, b) => b.change - a.change);
+    const W = 900, labW = 230, rowH = 30, top2 = 8, right = 140; const H = top2 + secs.length * rowH + 8; svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const maxAbs = Math.max(...secs.flatMap((r) => [Math.abs(r.ng) + Math.abs(r.im) + Math.abs(r.ls), Math.abs(r.change)]));
+    const zero = labW + (W - labW - right) * 0.35; const sc = (v) => v / maxAbs * (W - labW - right) * 0.62;
+    el('line', { x1: zero, x2: zero, y1: top2 - 2, y2: H - 6, class: 'axis' }, svg);
+    secs.forEach((r, i) => {
+      const y = top2 + i * rowH, bh = rowH - 10; const name = acctState.find((a) => a.seg === r.seg); el('text', { x: labW - 12, y: y + bh / 2 + 4, 'text-anchor': 'end' }, svg, (name ? name.sector : r.seg).replace('Scenic and sightseeing transportation, water', 'Scenic water tours').replace('Seafood product preparation and packaging', 'Seafood processing').replace('Water, sewage and other systems', 'Water & sewer utilities'));
+      let pos = 0, neg = 0; const g = el('g', {}, svg);
+      [['ng', 'b1'], ['im', 'b2'], ['ls', 'b3']].forEach(([k, cls]) => { const v = r[k]; if (!v) return; const w = Math.abs(sc(v)); if (v > 0) { el('rect', { x: zero + pos, y, width: w, height: bh, class: cls }, g); pos += w + 1; } else { neg += w + 1; el('rect', { x: zero - neg + 1, y, width: w, height: bh, class: cls }, g); } });
+      el('text', { x: zero + pos + 8, y: y + bh / 2 + 4, class: 'val' }, g, (r.change >= 0 ? '+' : '') + fmt(r.change) + ' jobs');
+      hover(el('rect', { x: 0, y: y - 2, width: W, height: bh + 4, class: 'hit' }, g), `${name ? name.sector : r.seg}, 2020 → 2023\nchange ${r.change >= 0 ? '+' : ''}${fmt(r.change)} jobs\nnational growth ${fmt(r.ng)} · industry mix ${fmt(r.im)} · local shift ${fmt(r.ls)}`);
+    });
+    $('#shift-caption').innerHTML = `Shift-share splits a sector's three-year change into what it would have gained growing like the whole US economy, the extra from the sector's own national trend, and what is left — the county's or state's own performance. The three sum to the change exactly. Boat and ship building's ${fmt(boats.ls)} local-shift jobs are the largest signal in the account: a Michigan story, not a national one.`;
+    $('#ratios-prov').innerHTML = `<b>Derived by</b> Localeco (\`water_economy_ratios\`, release ${AR.water_economy_ratios}) from Census County Business Patterns (release ${DATA.releases.cbp_annual}), every US county, over the same basket · <b>uncertainty</b> noise infusion · quotient of two perturbed counts is a perturbed quotient`;
+    table('#tbl-ratios', [{ h: 'county', f: (r) => DATA.counties[r.geo] || r.geo }, { h: 'LQ', num: true, f: (r) => r.lq.toFixed(2) }, { h: 'CBP jobs', num: true, f: (r) => fmt(r.emp) }, { h: 'change 20→23', num: true, f: (r) => r.change != null ? fmt(r.change) : '—' }, { h: 'local shift', num: true, f: (r) => r.ls != null ? fmt(r.ls) : '—' }, { h: 'complete', f: (r) => r.complete ? 'yes' : 'partly' }], counties);
+  }
+
+  // ---------- resource map ----------
+  {
+    const A = DATA.awards, T = DATA.awardsTotals;
+    const byProgram = {}; A.forEach((r) => { const k = r.cfda + ' ' + r.program; byProgram[k] = (byProgram[k] || 0) + r.amount; });
+    const topProg = Object.entries(byProgram).sort((a, b) => b[1] - a[1]);
+    const byRecipient = {}; A.forEach((r) => { byRecipient[r.recipient] = (byRecipient[r.recipient] || 0) + r.amount; });
+    const topRec = Object.entries(byRecipient).sort((a, b) => b[1] - a[1]);
+    const byCfdaRule = {}; A.filter((r) => r.rule.startsWith('cfda:')).forEach((r) => { const k = r.cfda + ' ' + r.program; byCfdaRule[k] = (byCfdaRule[k] || 0) + r.amount; });
+    const topCfda = Object.entries(byCfdaRule).sort((a, b) => b[1] - a[1])[0];
+    const biggest = A[0];
+    $('#funders-answer').innerHTML = `Every federal assistance award in the fetched agency slices that a declared rule admits — a water program by its CFDA number, or a water word in the program title or award description — with the recipient, the program, the place and the rule. <b>Michigan, FY2025: ${fmt(T.n)} awards, ${usd(T.usd)}, to ${T.recipients} recipients</b>, from ${fmt(T.national_n)} nationally. By program number the largest is ${topCfda[0].slice(0, 60)} (${usd(topCfda[1])}). <b>And the single largest row is a false positive the page is built to show:</b> ${usd(biggest.amount)} of ${biggest.program.toLowerCase()} to ${biggest.recipient.split(',')[0].toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())} got in by <code>${biggest.rule}</code>, because the department's own name contains the words — the rule is on the row, so a reader can throw it out. Filter below.`;
+    const C = $('#funders-cards'); C.innerHTML = '';
+    card(C, 'awards, Michigan FY2025', fmt(T.n), usd(T.usd) + ' obligated');
+    card(C, 'recipients', T.recipients, 'agencies, universities, tribes, utilities');
+    card(C, 'agencies fetched', T.agencies.length, T.agencies.map((a) => a.replace(/_/g, ' ')).join(' · '));
+    card(C, 'GLRI awards (66.469)', A.filter((r) => r.cfda === '66.469').length, usd(A.filter((r) => r.cfda === '66.469').reduce((s, r) => s + r.amount, 0)));
+    const progSel = $('#award-program'), ctySel = $('#award-county'), ruleSel = $('#award-rule');
+    const opt = (sel, v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); };
+    opt(progSel, '', 'all programs'); topProg.forEach(([k]) => opt(progSel, k.split(' ')[0], k.slice(0, 70)));
+    opt(ctySel, '', 'all of Michigan'); [...new Set(A.map((r) => r.geo))].sort().forEach((g) => opt(ctySel, g, g === '26' ? 'Michigan (state-level award)' : (DATA.counties[g] || g)));
+    opt(ruleSel, '', 'any rule'); [...new Set(A.map((r) => r.rule))].sort().forEach((r) => opt(ruleSel, r, r));
+    function renderAwards() {
+      const rows = A.filter((r) => (!progSel.value || r.cfda === progSel.value) && (!ctySel.value || r.geo === ctySel.value) && (!ruleSel.value || r.rule === ruleSel.value)).slice(0, 60);
+      table('#tbl-awards', [{ h: 'recipient', f: (r) => r.recipient }, { h: 'program', f: (r) => r.cfda + ' ' + r.program.slice(0, 48) }, { h: 'where', f: (r) => r.geo === '26' ? 'Michigan' : (DATA.counties[r.geo] || r.geo) }, { h: 'obligated', num: true, f: (r) => usd(r.amount) }, { h: 'admitted by', f: (r) => r.rule }], rows);
+      $('#funders-prov').innerHTML = `Showing ${rows.length}${rows.length === 60 ? ' of more' : ''} · <b>Derived by</b> Localeco (\`fed_assistance_awards\`, release ${AR.fed_assistance_awards}) from USAspending prime assistance transactions, EPA, Commerce and Interior FY2025 slices, over the registry's freshwater topic rules · USDA not yet fetched · negative amounts are de-obligations`;
+    }
+    [progSel, ctySel, ruleSel].forEach((s) => s.addEventListener('change', renderAwards)); renderAwards();
+    const S = DATA.sbir, ST = DATA.sbirTotals;
+    $('#sbir-answer').innerHTML = `SBIR and STTR awards whose <em>title</em> a rule admits — the public file has no abstract, so a miss is not evidence of absence. <b>Michigan: ${ST.n} awards, ${usd(ST.usd)}, ${ST.companies} companies</b>, ${ST.recent_n} of them since 2020: PFAS destruction, wastewater modelling, contaminant field sensors. These are the freshwater-tech firms the SBDC program describes, by name.`;
+    table('#tbl-sbir', [{ h: 'company', f: (r) => r.company }, { h: 'award', f: (r) => r.title.slice(0, 70) }, { h: 'agency', f: (r) => r.agency }, { h: 'phase', f: (r) => r.seg.replace('_', ' ') }, { h: 'year', num: true, f: (r) => r.year }, { h: 'amount', num: true, f: (r) => usd(r.amount) }, { h: 'admitted by', f: (r) => r.rule }], S.slice(0, 40));
+    $('#sbir-prov').innerHTML = `Showing ${Math.min(40, S.length)} of ${S.length} · <b>Derived by</b> Localeco (\`sbir_award_detail\`, release ${AR.sbir_award_detail}) from the sbir.gov bulk award file over the same rules · state and ZIP of the company`;
+    table('#tbl-rules', [{ h: 'kind', f: (r) => r.kind }, { h: 'value', f: (r) => r.value }, { h: 'basis', f: (r) => r.basis }], DATA.topicRules);
+  }
+
+  // ---------- sources ----------
+  {
+    const when = DATA.generated.replace('T', ' ').slice(0, 16) + ' UTC';
+    $('#sources-answer').innerHTML = `Every figure on this page was computed from the Localeco warehouse on <b>${when}</b> by the SQL queries below, and nothing on it is typed in by hand. Each query names the dataset releases it read, and each release was loaded from the public agency files named beside it (every file is listed in <a href="data.json">data.json</a>, which also holds the numbers themselves).`;
+    const host = $('#tbl-sources'); host.innerHTML = '';
+    const t = document.createElement('table'); const hr = t.createTHead().insertRow();
+    ['figure', 'query', 'releases it read, and who published them'].forEach((c) => { const th = document.createElement('th'); th.textContent = c; hr.appendChild(th); });
+    const tb = t.createTBody();
+    DATA.sources.forEach((s) => {
+      const tr = tb.insertRow();
+      const a = tr.insertCell(); a.className = 'f'; a.textContent = s.about;
+      const q = tr.insertCell(); q.className = 'q'; const l = document.createElement('a'); l.href = s.file; l.textContent = s.file.replace('queries/', ''); q.appendChild(l);
+      const r = tr.insertCell(); r.className = 'r';
+      if (!s.releases.length) r.textContent = 'Localeco registry: definitions, not data';
+      s.releases.forEach((rel) => {
+        // One line per release: its id and date, then the publisher's host linked to the first file (every file is in data.json).
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(`${rel.dataset}/${rel.release_id}${s.catalog === 'capture' ? ' (capture)' : ''}, ${String(rel.released_at).slice(0, 10)} — `));
+        const first = rel.source_urls[0];
+        if (first && /^https?:/.test(first)) { const x = document.createElement('a'); x.href = first; x.textContent = new URL(first).hostname; d.appendChild(x); d.appendChild(document.createTextNode(`, ${rel.source_url_count} file${rel.source_url_count === 1 ? '' : 's'}`)); }
+        else if (first) d.appendChild(document.createTextNode(`derived in the warehouse by ${first}`));
+        else if (rel.depends_on && rel.depends_on.length) d.appendChild(document.createTextNode(`derived in the warehouse from release${rel.depends_on.length === 1 ? '' : 's'} ${rel.depends_on.join(', ')}`));
+        else d.appendChild(document.createTextNode('source file not recorded on this release'));
+        r.appendChild(d);
+      });
+    });
+    host.appendChild(t);
+  }
+
+  $('#foot').innerHTML = `Computed from the Localeco warehouse ${DATA.generated.replace('T', ' ').slice(0, 16)} UTC. A release id names one load of a dataset, and the same id always returns the same rows. Lock data read from the isolated capture database, which is the copy that is kept. Your selections are remembered in this browser only.`;
+}
+
+fetch('data.json')
+  .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  .then(ledger)
+  .catch((e) => {
+    const p = document.createElement('p'); p.className = 'load-error';
+    p.textContent = 'The figures could not be loaded (' + e.message + '). This page reads data.json from beside it, so it has to be served over http, not opened as a file.';
+    document.querySelector('.lede').after(p);
+  });
+</script>
+
+</body></html>
